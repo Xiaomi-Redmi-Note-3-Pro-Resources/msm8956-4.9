@@ -29,7 +29,9 @@ cc32-ldoption = $(call try-run,\
 # NOSTDINC_FLAGS
 VDSO_CPPFLAGS := -nostdinc -isystem $(shell $(CC_ARM32) -print-file-name=include)
 VDSO_CPPFLAGS += $(LINUXINCLUDE)
-VDSO_CPPFLAGS += $(KBUILD_CPPFLAGS)
+VDSO_CPPFLAGS += -D__KERNEL__
+VDSO_CPPFLAGS += $(call cc-option,-Qunused-arguments,)
+VDSO_CPPFLAGS += $(ARCH_CPPFLAGS) $(KCPPFLAGS)
 
 # Common C and assembly flags
 # From top-level Makefile
