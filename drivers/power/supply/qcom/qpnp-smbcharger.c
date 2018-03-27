@@ -1134,6 +1134,7 @@ static int get_prop_batt_voltage_max_design(struct smbchg_chip *chip)
 	return uv;
 }
 
+#ifndef CONFIG_QPNP_LEGACY_CYCLE_COUNT
 static int get_prop_batt_cycle_count(struct smbchg_chip *chip)
 {
 	int bcc = 0, rc;
@@ -1144,6 +1145,7 @@ static int get_prop_batt_cycle_count(struct smbchg_chip *chip)
 		pr_smb(PR_STATUS, "Couldn't get cycle_count rc = %d\n", rc);
 	return bcc;
 }
+#endif
 
 static int get_prop_batt_health(struct smbchg_chip *chip)
 {
@@ -5951,7 +5953,9 @@ static enum power_supply_property smbchg_battery_properties[] = {
 	POWER_SUPPLY_PROP_RESTRICTED_CHARGING,
 	POWER_SUPPLY_PROP_ALLOW_HVDCP3,
 	POWER_SUPPLY_PROP_MAX_PULSE_ALLOWED,
+#ifndef CONFIG_QPNP_LEGACY_CYCLE_COUNT
 	POWER_SUPPLY_PROP_CYCLE_COUNT,
+#endif
 	POWER_SUPPLY_PROP_CHARGE_CONTROL_LIMIT_MAX,
 	POWER_SUPPLY_PROP_CHARGE_CONTROL_LIMIT,
 };
@@ -6183,9 +6187,11 @@ static int smbchg_battery_get_property(struct power_supply *psy,
 	case POWER_SUPPLY_PROP_MAX_PULSE_ALLOWED:
 		val->intval = chip->max_pulse_allowed;
 		break;
+#ifndef CONFIG_QPNP_LEGACY_CYCLE_COUNT
 	case POWER_SUPPLY_PROP_CYCLE_COUNT:
 		val->intval = get_prop_batt_cycle_count(chip);
 		break;
+#endif
 	default:
 		return -EINVAL;
 	}
