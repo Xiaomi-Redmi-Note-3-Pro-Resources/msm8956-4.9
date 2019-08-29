@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2018, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2015-2019, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -200,6 +200,7 @@ static inline bool pfk_is_ready(void)
 static struct inode *pfk_bio_get_inode(const struct bio *bio)
 {
 	struct inode *inode;
+	struct address_space *mapping = NULL;
 
 	if (!bio)
 		return NULL;
@@ -218,10 +219,11 @@ static struct inode *pfk_bio_get_inode(const struct bio *bio)
 		return inode;
 	}
 
-	if (!page_mapping(bio->bi_io_vec->bv_page))
+	mapping = page_mapping(bio->bi_io_vec->bv_page);
+	if (!mapping)
 		return NULL;
 
-	return page_mapping(bio->bi_io_vec->bv_page)->host;
+	return mapping->host;
 }
 
 /**
