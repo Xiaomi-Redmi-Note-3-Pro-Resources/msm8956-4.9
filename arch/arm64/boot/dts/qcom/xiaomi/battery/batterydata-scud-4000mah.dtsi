@@ -1,0 +1,28 @@
+/*
+ * Copyright (c) 2015, The Linux Foundation. All rights reserved.
+ * Copyright (C) 2016, XiaoMi, Inc.
+ * Copyright (c) 2023, Irawans Prjkt. All rights reserved.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2 and
+ * only version 2 as published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ */
+qcom,longcheer_ct865scud_4000mah_battery {
+    qcom,max-voltage-uv = <4400000>;
+    qcom,nom-batt-capacity-mah = <4000>;
+    qcom,batt-id-kohm = <100>;
+    qcom,battery-beta = <4150>;
+    qcom,battery-type = "longcheer_ct865scud_4000mah_battery";
+    qcom,chg-rslow-comp-c1 = <2635539>;
+    qcom,chg-rslow-comp-c2 = <2592188>;
+    qcom,chg-rs-to-rslow = <1432403>;
+    qcom,chg-rslow-comp-thr = <0x99>;
+    qcom,checksum = <0x6ee9>;
+    qcom,gui-version = "PMI8950GUI - 2.0.0.15";
+    qcom,fg-profile-data = <0xea83467d 0x9381367c 0x5b83d767 0xfd82398d 0x1f82ff98 0xb3b601c2 0x6418fe83 0xaf7dea81 0x947c8283 0x597def90 0x79c3782 0x69913b7 0xa4c25216 0x1f10be58 0x1470eefc 0x6e3ce945 0x43400000 0x3347af33 0xce340000 0x00 0x00 0x17727670 0x7a690683 0xd475ba68 0xa55a6379 0x506f895a 0x416792a2 0x212f6850 0x65a0710c 0x2800ff36 0xf0113003 0x0c>;
+};

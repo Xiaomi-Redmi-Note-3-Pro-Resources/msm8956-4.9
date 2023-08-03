@@ -1,0 +1,29 @@
+/*
+ * Copyright (c) 2015, The Linux Foundation. All rights reserved.
+ * Copyright (C) 2016, XiaoMi, Inc.
+ * Copyright (c) 2023, Irawans Prjkt. All rights reserved.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2 and
+ * only version 2 as published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ */
+qcom,ct865_coslight_4000mah_10k_averaged_masterslave_oct2nd2015 {
+    qcom,max-voltage-uv = <4400000>;
+    qcom,nom-batt-capacity-mah = <4000>;
+    qcom,batt-id-kohm = <10>;
+    qcom,battery-beta = <4150>;
+    qcom,battery-type = "ct865_coslight_4000mah_10k_averaged_masterslave_oct2nd2015";
+    qcom,chg-rslow-comp-c1 = <2733744>;
+    qcom,chg-rslow-comp-c2 = <3185429>;
+    qcom,chg-rs-to-rslow = <896437>;
+    qcom,chg-rslow-comp-thr = <0x99>;
+    qcom,fastchg-current-ma = <2000>;
+    qcom,checksum = <0xa7be>;
+    qcom,gui-version = "PMI8950GUI - 2.0.0.14";
+    qcom,fg-profile-data = <0xdb838c7c 0xcd809476 0x68834975 0xf589e294 0x11820a9a 0xb1bce5c8 0x5612f083 0xcb7cdc80 0x7f765a83 0xf1606081 0xe38d5582 0x7999b6bc 0x7cc9540e 0x8610d159 0x1470f4fd 0xea3c3546 0x56420000 0xa45093b 0x8d3e0000 0x00 0x00 0x702c6a 0x1c57ea88 0x7075fd6a 0x2565c27b 0x1f6f2968 0xe26d66a3 0x1ed76112 0x65a0710c 0x2800ff36 0xf0113003 0x0c>;
+};
