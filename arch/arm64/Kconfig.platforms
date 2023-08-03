@@ -167,6 +167,27 @@ config ARCH_MSM8976
 	  This enables support for the MSM8976 chipset. If you do not
 	  wish to build a kernel that runs on this chipset, say 'N' here.
 
+config MACH_XIAOMI_MSM8956
+	bool "Xiaomi MSM8956"
+	depends on ARCH_MSM8976
+	help
+	Support for the Xiaomi Device platform
+	which is based on QCOM MSM8956 chipset.
+	If you enable this config,
+	please use Xiaomi Mobile device tree.
+
+config MACH_XIAOMI_KENZO
+	bool "XIAOMI KENZO board"
+	select MACH_XIAOMI_MSM8956
+	help
+	Support for Xiaomi Redmi Note 3 variant
+
+config MACH_XIAOMI_HYDROGEN
+	bool "XIAOMI HYDROGEN board"
+	select MACH_XIAOMI_MSM8956
+	help
+	Support for Xiaomi Mi Max variant
+
 config ARCH_MSM8953
 	bool "Enable Support for Qualcomm Technologies Inc. MSM8953"
 	depends on ARCH_QCOM
