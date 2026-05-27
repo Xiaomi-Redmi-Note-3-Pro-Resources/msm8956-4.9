@@ -117,13 +117,6 @@
 #endif
 #include "plug.h"
 
-#include "../lct_tp_fm_info.h"
-#define LCT_ADD_TP_VERSION
-
-#ifdef LCT_ADD_TP_VERSION
-u32 config_crc_ver = 0;
-#endif
-
 /* Configuration file */
 #define MXT_CFG_MAGIC		"OBP_RAW V1"
 
@@ -2735,7 +2728,7 @@ static int mxt_soft_reset(struct mxt_data *data)
 
 	dev_info(dev, "Resetting chip\n");
 
-	INIT_COMPLETION(data->reset_completion);
+	reinit_completion(&data->reset_completion);
 
 	ret = mxt_t6_command(data, MXT_COMMAND_RESET, MXT_RESET_VALUE, false);
 	if (ret)
@@ -2890,7 +2883,7 @@ static void mxt_update_crc(struct mxt_data *data, u8 cmd, u8 value)
 {
 	/* on failure, CRC is set to 0 and config will always be downloaded */
 	data->config_crc = 0;
-	INIT_COMPLETION(data->crc_completion);
+	reinit_completion(&data->crc_completion);
 
 	mxt_t6_command(data, cmd, value, true);
 
@@ -3926,7 +3919,7 @@ static void mxt_regulator_enable(struct mxt_data *data)
     gpio_set_value(data->pdata->gpio_reset, 0);
     mxt_power_on(data, true);
     msleep(MXT_REGULATOR_DELAY);
-    INIT_COMPLETION(data->bl_completion);
+    reinit_completion(&data->bl_completion);
     gpio_set_value(data->pdata->gpio_reset, 1);
     mxt_wait_for_completion(data, &data->bl_completion, MXT_POWERON_DELAY);
 }
@@ -4581,7 +4574,7 @@ static int mxt_load_fw(struct device *dev)
 	}
 
 	mxt_free_object_table(data);
-	INIT_COMPLETION(data->bl_completion);
+	reinit_completion(&data->bl_completion);
 
 	ret = mxt_check_bootloader(data, MXT_WAITING_BOOTLOAD_CMD, false);
 	if (ret) {
@@ -4642,7 +4635,7 @@ static int mxt_load_fw(struct device *dev)
 	}
 
 	/* Wait for flash. */
-	INIT_COMPLETION(data->bl_completion);
+	reinit_completion(&data->bl_completion);
 	ret = mxt_wait_for_completion(data, &data->bl_completion,
 				MXT_FW_RESET_TIME);
 	/*
@@ -4654,7 +4647,7 @@ static int mxt_load_fw(struct device *dev)
 
 	/* Wait for device to reset. Some bootloader versions do not assert
 	 * the CHG line after bootloading has finished, so ignore error */
-	INIT_COMPLETION(data->bl_completion);
+	reinit_completion(&data->bl_completion);
 	ret = mxt_wait_for_completion(data, &data->bl_completion,
 				MXT_FW_RESET_TIME);
 
@@ -5062,7 +5055,7 @@ static DEVICE_ATTR(hw_version, S_IRUGO, mxt_hw_version_show, NULL);
 static DEVICE_ATTR(object, S_IRUGO, mxt_object_show, NULL);
 static DEVICE_ATTR(update_fw, S_IWUSR /*| S_IWGRP | S_IWOTH */, NULL, mxt_update_fw_store);
 static DEVICE_ATTR(update_cfg, S_IWUSR/* | S_IWGRP | S_IWOTH */, NULL, mxt_update_cfg_store);
-static DEVICE_ATTR(debug_v2_enable, S_IRWXUGO/*S_IWUSR | S_IRUSR*/, NULL, mxt_debug_v2_enable_store);
+static DEVICE_ATTR(debug_v2_enable, 0600, NULL, mxt_debug_v2_enable_store);
 static DEVICE_ATTR(debug_notify, S_IRUGO, mxt_debug_notify_show, NULL);
 static DEVICE_ATTR(debug_enable, S_IWUSR | S_IRUSR, mxt_debug_enable_show,
 			mxt_debug_enable_store);
@@ -5077,7 +5070,7 @@ static DEVICE_ATTR(cmd, S_IWUSR, NULL,
 static DEVICE_ATTR(depth, S_IWUSR | S_IRUSR, mxt_irq_depth_show,
 			mxt_irq_depth_store);
 #if defined(CONFIG_MXT_PLUGIN_SUPPORT)
-static DEVICE_ATTR(plugin, S_IRWXUGO /*S_IWUSR | S_IRUSR*/, mxt_plugin_show,
+static DEVICE_ATTR(plugin, 0644 /*S_IWUSR | S_IRUSR*/, mxt_plugin_show,
 			mxt_plugin_store);
 static DEVICE_ATTR(plugin_tag, S_IRUGO, mxt_plugin_tag_show,
 			NULL);
@@ -5094,7 +5087,7 @@ static DEVICE_ATTR(gesture_trace, /*S_IWUSR |*/ S_IRUSR, mxt_plugin_gesture_trac
 			NULL);
 #endif
 #if defined(CONFIG_MXT_MISC_WORKAROUND)
-	static DEVICE_ATTR(misc, (S_IWUSR|S_IRUGO|S_IWUGO), mxt_plugin_misc_show,
+	static DEVICE_ATTR(misc, 0644, mxt_plugin_misc_show,
 				mxt_plugin_misc_store);
 #endif
 #if defined(CONFIG_MXT_CLIP_WORKAROUND)
@@ -5646,8 +5639,8 @@ static int mxt_pinctrl_select(struct mxt_data *data,
 
 	return 0;
 }
-extern int is_tp_driver_loaded ;
-static int  mxt_probe(struct i2c_client *client,
+
+static int mxt_probe(struct i2c_client *client,
 					const struct i2c_device_id *id)
 {
 	struct mxt_data *data;
@@ -5655,11 +5648,6 @@ static int  mxt_probe(struct i2c_client *client,
 
 	dev_info(&client->dev, "%s: driver version 0x%x\n",
 			__func__, DRIVER_VERSION);
-
-	if (is_tp_driver_loaded) {
-		printk(KERN_ERR "mxt_probe other driver has been loaded\n");
-		return -ENODEV;
-	}
 
 	data = kzalloc(sizeof(struct mxt_data), GFP_KERNEL);
 	if (!data) {
@@ -5797,7 +5785,6 @@ static int  mxt_probe(struct i2c_client *client,
 	data->early_suspend.resume = mxt_late_resume;
 	register_early_suspend(&data->early_suspend);
 #endif
-	is_tp_driver_loaded = 1;
 
 	dev_info(&client->dev, "Mxt probe finished\n");
 
