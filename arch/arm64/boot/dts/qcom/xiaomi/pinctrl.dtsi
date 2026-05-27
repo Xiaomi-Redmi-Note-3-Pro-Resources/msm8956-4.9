@@ -12,19 +12,34 @@
  * GNU General Public License for more details.
  */
 
-#include "mdss.dtsi"
-#include "mdss-panels.dtsi"
-#include "pinctrl.dtsi"
-#include "regulator.dtsi"
-#include "touchscreen.dtsi"
+&msm_gpio {
+    pmx_ts_power_active {
+		ts_power_active: ts_power_active {
+			mux {
+				pins = "gpio134";
+				function = "gpio";
+			};
 
-&mtp_batterydata {
-    qcom,batt-id-range-pct = <15>;
+			config {
+				pins = "gpio134";
+				drive-strength = <16>;
+				bias-pull-up;
+			};
+		};
+	};
 
-    /delete-node/ qcom,itech-3000mah-4200mv;
-    /delete-node/ qcom,itech-3000mah;
+    pmx_ts_power_suspend {
+		ts_power_suspend: ts_power_suspend {
+			mux {
+				pins = "gpio134";
+				function = "gpio";
+			};
 
-    #include "battery/batterydata-coslight-4000mah-10k.dtsi"
-    #include "battery/batterydata-scud-4000mah.dtsi"
-    #include "battery/batterydata-sunwoda-4000mah.dtsi"
+			config {
+				pins = "gpio134";
+				drive-strength = <16>;
+				bias-disable;
+			};
+		};
+	};
 };
