@@ -59,6 +59,15 @@ static phys_addr_t tcsr_boot_misc_detect;
 static void scm_disable_sdi(void);
 static bool force_warm_reboot;
 
+/*
+ * Bring-up aid, off by default: any reset that was not asked for restarts into
+ * recovery with RAM kept, so that the recovery can read the crash log from
+ * pstore. Use it with msm_poweroff.download_mode=0, or a crash enters ramdump
+ * mode instead.
+ */
+static bool panic_to_recovery;
+module_param(panic_to_recovery, bool, 0444);
+
 #ifdef CONFIG_QCOM_DLOAD_MODE
 /* Runtime could be only changed value once.
  * There is no API from TZ to re-enable the registers.
@@ -279,6 +288,15 @@ static void halt_spmi_pmic_arbiter(void)
 	}
 }
 
+static void msm_set_next_boot(bool recovery)
+{
+	qpnp_pon_set_restart_reason(recovery ? PON_RESTART_REASON_RECOVERY :
+				    PON_RESTART_REASON_UNKNOWN);
+	if (restart_reason)
+		__raw_writel(recovery ? 0x77665502 : 0x77665501,
+			     restart_reason);
+}
+
 static void msm_restart_prepare(const char *cmd)
 {
 	bool need_warm_reset = false;
@@ -290,6 +308,10 @@ static void msm_restart_prepare(const char *cmd)
 
 	set_dload_mode(download_mode &&
 			(in_panic || restart_mode == RESTART_DLOAD));
+
+	/* a command handled below overrides this */
+	if (panic_to_recovery)
+		msm_set_next_boot(in_panic);
 #endif
 
 	if (qpnp_pon_check_hard_reset_stored()) {
@@ -720,3 +742,17 @@ static int __init msm_restart_init(void)
 	return platform_driver_register(&msm_restart_driver);
 }
 pure_initcall(msm_restart_init);
+
+/* Also covers resets that run no code, such as a watchdog bite. */
+static int __init msm_panic_to_recovery_init(void)
+{
+	if (!panic_to_recovery)
+		return 0;
+
+	force_warm_reboot = true;
+	qpnp_pon_system_pwr_off(PON_POWER_OFF_WARM_RESET);
+	msm_set_next_boot(true);
+	pr_info("panic_to_recovery: a crash now restarts into recovery\n");
+	return 0;
+}
+late_initcall_sync(msm_panic_to_recovery_init);
