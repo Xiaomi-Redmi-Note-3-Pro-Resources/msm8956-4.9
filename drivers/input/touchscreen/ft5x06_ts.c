@@ -998,6 +998,12 @@ err_irq_gpio_req:
 	return err;
 }
 
+static void ft5x06_ldo_set(struct ft5x06_ts_data *data, int value)
+{
+	if (gpio_is_valid(data->pdata->power_ldo_gpio))
+		gpio_set_value_cansleep(data->pdata->power_ldo_gpio, value);
+}
+
 static int ft5x06_power_on(struct ft5x06_ts_data *data, bool on)
 {
 	int rc;
@@ -1005,15 +1011,13 @@ static int ft5x06_power_on(struct ft5x06_ts_data *data, bool on)
 	if (!on)
 		goto power_off;
 
-	if (gpio_is_valid(data->pdata->power_ldo_gpio)) {
-		printk("%s,  power_ldo_gpio\n", __func__);
-		gpio_set_value(data->pdata->power_ldo_gpio, 1);
-	}
+	ft5x06_ldo_set(data, 1);
 
 	rc = regulator_enable(data->vdd);
 	if (rc) {
 		dev_err(&data->client->dev,
 			"Regulator vdd enable failed rc=%d\n", rc);
+		ft5x06_ldo_set(data, 0);
 		return rc;
 	}
 
@@ -1022,13 +1026,13 @@ static int ft5x06_power_on(struct ft5x06_ts_data *data, bool on)
 		dev_err(&data->client->dev,
 			"Regulator vcc_i2c enable failed rc=%d\n", rc);
 		regulator_disable(data->vdd);
+		ft5x06_ldo_set(data, 0);
 	}
 
 	return rc;
 
 power_off:
-	if (gpio_is_valid(data->pdata->power_ldo_gpio))
-		gpio_set_value(data->pdata->power_ldo_gpio, 0);
+	ft5x06_ldo_set(data, 0);
 
 	rc = regulator_disable(data->vdd);
 	if (rc) {
@@ -1094,27 +1098,22 @@ static int ft5x06_power_init(struct ft5x06_ts_data *data, bool on)
 		}
 	}
 
+	/*
+	 * Starts low; ft5x06_power_on() raises it. A busy GPIO means another
+	 * touch driver owns these lines, so fail before touching them.
+	 */
 	if (gpio_is_valid(data->pdata->power_ldo_gpio)) {
-		printk("%s, power_ldo_gpio\n", __func__);
-		rc = gpio_request(data->pdata->power_ldo_gpio,
-				"focaltech_ldo_gpio");
+		rc = gpio_request_one(data->pdata->power_ldo_gpio,
+				GPIOF_OUT_INIT_LOW, "ft5x06_ldo_gpio");
 		if (rc) {
-			printk("irq gpio request failed\n");
+			dev_err(&data->client->dev,
+				"power LDO GPIO request failed rc=%d\n", rc);
 			goto reg_vcc_i2c_put;
-		}
-
-		rc = gpio_direction_output(data->pdata->power_ldo_gpio, 1);
-		if (rc) {
-			printk("set_direction for irq gpio failed\n");
-			goto free_ldo_gpio;
 		}
 	}
 
 	return 0;
 
-free_ldo_gpio:
-	if (gpio_is_valid(data->pdata->power_ldo_gpio))
-		gpio_free(data->pdata->power_ldo_gpio);
 reg_vcc_i2c_put:
 	regulator_put(data->vcc_i2c);
 reg_vdd_set_vtg:
@@ -2158,11 +2157,8 @@ static int ft5x06_parse_dt(struct device *dev,
 	pdata->power_ldo_gpio = of_get_named_gpio_flags(np,
 				"focaltech,power-gpio", 0,
 				&pdata->power_ldo_gpio_flags);
-	if (pdata->power_ldo_gpio < 0)
-		printk("%s, can not get power_gpio\n", __func__);
-	else
-		printk("%s, power_ldo_gpio=%d\n", __func__,
-				pdata->power_ldo_gpio);
+	if (pdata->power_ldo_gpio == -EPROBE_DEFER)
+		return -EPROBE_DEFER;
 
 	pdata->fw_name = "ft_fw.bin";
 	rc = of_property_read_string(np, "focaltech,fw-name", &pdata->fw_name);
