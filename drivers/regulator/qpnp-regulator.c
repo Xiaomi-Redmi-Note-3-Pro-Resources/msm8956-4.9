@@ -850,14 +850,16 @@ static int qpnp_regulator_select_voltage(struct qpnp_regulator *vreg,
 	return 0;
 }
 
-static int qpnp_regulator_delay_for_slewing(struct qpnp_regulator *vreg,
+/* rdev is a parameter: vreg->rdev is not set yet during regulator_register() */
+static int qpnp_regulator_delay_for_slewing(struct regulator_dev *rdev,
 		int prev_voltage)
 {
+	struct qpnp_regulator *vreg = rdev_get_drvdata(rdev);
 	int current_voltage;
 
 	/* Delay for voltage slewing if a step rate is specified. */
 	if (vreg->slew_rate && vreg->rdesc.ops->get_voltage) {
-		current_voltage = vreg->rdesc.ops->get_voltage(vreg->rdev);
+		current_voltage = vreg->rdesc.ops->get_voltage(rdev);
 		if (current_voltage < 0) {
 			vreg_err(vreg, "could not get new voltage, rc=%d\n",
 				current_voltage);
@@ -922,7 +924,7 @@ static int qpnp_regulator_common_set_voltage(struct regulator_dev *rdev,
 	if (rc) {
 		vreg_err(vreg, "SPMI write failed, rc=%d\n", rc);
 	} else {
-		rc = qpnp_regulator_delay_for_slewing(vreg, voltage_old);
+		rc = qpnp_regulator_delay_for_slewing(rdev, voltage_old);
 		if (rc)
 			return rc;
 
@@ -1129,7 +1131,7 @@ static int qpnp_regulator_common2_set_voltage(struct regulator_dev *rdev,
 		vreg->ctrl_reg[QPNP_COMMON2_IDX_VOLTAGE_LSB] = buf[0];
 		vreg->ctrl_reg[QPNP_COMMON2_IDX_VOLTAGE_MSB] = buf[1];
 
-		rc = qpnp_regulator_delay_for_slewing(vreg, voltage_old);
+		rc = qpnp_regulator_delay_for_slewing(rdev, voltage_old);
 		if (rc)
 			return rc;
 
