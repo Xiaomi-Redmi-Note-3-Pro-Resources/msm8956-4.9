@@ -774,14 +774,8 @@ static void ramoops_register_dummy(void)
 	}
 }
 
-static struct ramoops_platform_data ramoops_data;
-
-static struct platform_device ramoops_dev  = {
-	.name = "ramoops",
-	.dev = {
-		.platform_data = &ramoops_data,
-	},
-};
+#ifndef MODULE
+static struct ramoops_platform_data ramoops_memreserve_data;
 
 static int __init ramoops_memreserve(char *p)
 {
@@ -791,16 +785,18 @@ static int __init ramoops_memreserve(char *p)
 		return 1;
 
 	size = memparse(p, &p) & PAGE_MASK;
-	ramoops_data.mem_size = size;
-	ramoops_data.mem_address = memblock_end_of_DRAM() - size;
-	ramoops_data.console_size = size / 2;
-	ramoops_data.pmsg_size = size / 2;
-	ramoops_data.dump_oops = 1;
+	if (!size || size >= memblock_end_of_DRAM() - memblock_start_of_DRAM())
+		return 1;
 
-	pr_info("msm_reserve_ramoops_memory addr=%lx,size=%lx \n", ramoops_data.mem_address, ramoops_data.mem_size);
-	pr_info("msm_reserve_ramoops_memory record_size=%lx,ftrace_size=%lx \n", ramoops_data.record_size, ramoops_data.ftrace_size);
+	ramoops_memreserve_data.mem_size = size;
+	ramoops_memreserve_data.mem_address = memblock_end_of_DRAM() - size;
+	ramoops_memreserve_data.console_size = size / 2;
+	ramoops_memreserve_data.pmsg_size = size / 2;
+	ramoops_memreserve_data.dump_oops = 1;
 
-	memblock_reserve(ramoops_data.mem_address, ramoops_data.mem_size);
+	pr_info("reserving 0x%lx bytes at %pa\n", size,
+		&ramoops_memreserve_data.mem_address);
+	memblock_reserve(ramoops_memreserve_data.mem_address, size);
 
 	return 0;
 }
@@ -808,12 +804,22 @@ early_param("ramoops_memreserve", ramoops_memreserve);
 
 static int __init msm_register_ramoops_device(void)
 {
-	pr_info("msm_register_ramoops_device \n");
-	if (platform_device_register(&ramoops_dev))
-		pr_info("Unable to register ramoops platform device\n");
+	struct platform_device *pdev;
+
+	if (!ramoops_memreserve_data.mem_size)
+		return 0;
+
+	pdev = platform_device_register_data(NULL, "ramoops", 0,
+			&ramoops_memreserve_data,
+			sizeof(ramoops_memreserve_data));
+	if (IS_ERR(pdev))
+		pr_err("could not create platform device: %ld\n",
+			PTR_ERR(pdev));
 	return 0;
 }
 core_initcall(msm_register_ramoops_device);
+#endif /* !MODULE */
+
 static int __init ramoops_init(void)
 {
 	ramoops_register_dummy();
