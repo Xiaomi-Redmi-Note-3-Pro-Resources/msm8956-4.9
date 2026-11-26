@@ -515,6 +515,7 @@ static int mxt_probe_bootloader(struct mxt_data *data, bool alt_address)
 	return 0;
 }
 
+#ifndef CONFIG_TOUCHSCREEN_XIAOMI_NO_FW_UPDATE
 static u8 mxt_get_bootloader_version(struct mxt_data *data, u8 val)
 {
 	struct device *dev = &data->client->dev;
@@ -598,6 +599,7 @@ recheck:
 
 	return 0;
 }
+#endif /* !CONFIG_TOUCHSCREEN_XIAOMI_NO_FW_UPDATE */
 
 static int mxt_send_bootloader_cmd(struct mxt_data *data, bool unlock)
 {
@@ -1222,6 +1224,7 @@ static int mxt_soft_reset(struct mxt_data *data)
 	return 0;
 }
 
+#ifndef CONFIG_TOUCHSCREEN_XIAOMI_NO_FW_UPDATE
 static void mxt_update_crc(struct mxt_data *data, u8 cmd, u8 value)
 {
 	/*
@@ -1566,6 +1569,7 @@ release_mem:
 	kfree(config_mem);
 	return ret;
 }
+#endif /* !CONFIG_TOUCHSCREEN_XIAOMI_NO_FW_UPDATE */
 
 static int mxt_get_info(struct mxt_data *data)
 {
@@ -2040,11 +2044,13 @@ err_free_mem:
 static int mxt_configure_objects(struct mxt_data *data,
 				 const struct firmware *cfg);
 
+#ifndef CONFIG_TOUCHSCREEN_XIAOMI_NO_FW_UPDATE
 static void mxt_config_cb(const struct firmware *cfg, void *ctx)
 {
 	mxt_configure_objects(ctx, cfg);
 	release_firmware(cfg);
 }
+#endif
 
 static int mxt_initialize(struct mxt_data *data)
 {
@@ -2071,12 +2077,16 @@ static int mxt_initialize(struct mxt_data *data)
 		/* OK, we are in bootloader, see if we can recover */
 		if (++recovery_attempts > 1) {
 			dev_err(&client->dev, "Could not recover from bootloader mode\n");
+#ifdef CONFIG_TOUCHSCREEN_XIAOMI_NO_FW_UPDATE
+			return -ENODEV;
+#else
 			/*
 			 * We can reflash from this state, so do not
 			 * abort initialization.
 			 */
 			data->in_bootloader = true;
 			return 0;
+#endif
 		}
 
 		/* Attempt to exit bootloader into app mode */
@@ -2095,6 +2105,12 @@ static int mxt_initialize(struct mxt_data *data)
 	if (error)
 		goto err_free_object_table;
 
+#ifdef CONFIG_TOUCHSCREEN_XIAOMI_NO_FW_UPDATE
+	/* keep the configuration already stored in the controller */
+	error = mxt_configure_objects(data, NULL);
+	if (error)
+		goto err_free_object_table;
+#else
 	error = request_firmware_nowait(THIS_MODULE, true, MXT_CFG_NAME,
 					&client->dev, GFP_KERNEL, data,
 					mxt_config_cb);
@@ -2103,6 +2119,7 @@ static int mxt_initialize(struct mxt_data *data)
 			error);
 		goto err_free_object_table;
 	}
+#endif
 
 	return 0;
 
@@ -2592,11 +2609,13 @@ static int mxt_configure_objects(struct mxt_data *data,
 		return error;
 	}
 
+#ifndef CONFIG_TOUCHSCREEN_XIAOMI_NO_FW_UPDATE
 	if (cfg) {
 		error = mxt_update_cfg(data, cfg);
 		if (error)
 			dev_warn(dev, "Error %d updating config\n", error);
 	}
+#endif
 
 	if (data->multitouch) {
 		error = mxt_initialize_input_device(data);
@@ -2696,6 +2715,7 @@ done:
 	return error ?: count;
 }
 
+#ifndef CONFIG_TOUCHSCREEN_XIAOMI_NO_FW_UPDATE
 static int mxt_check_firmware_format(struct device *dev,
 				     const struct firmware *fw)
 {
@@ -2863,23 +2883,28 @@ static ssize_t mxt_update_fw_store(struct device *dev,
 	return count;
 }
 
+#endif /* !CONFIG_TOUCHSCREEN_XIAOMI_NO_FW_UPDATE */
+
 static DEVICE_ATTR(fw_version, S_IRUGO, mxt_fw_version_show, NULL);
 static DEVICE_ATTR(hw_version, S_IRUGO, mxt_hw_version_show, NULL);
 static DEVICE_ATTR(object, S_IRUGO, mxt_object_show, NULL);
+#ifndef CONFIG_TOUCHSCREEN_XIAOMI_NO_FW_UPDATE
 static DEVICE_ATTR(update_fw, S_IWUSR, NULL, mxt_update_fw_store);
+#endif
 
 static struct attribute *mxt_attrs[] = {
 	&dev_attr_fw_version.attr,
 	&dev_attr_hw_version.attr,
 	&dev_attr_object.attr,
+#ifndef CONFIG_TOUCHSCREEN_XIAOMI_NO_FW_UPDATE
 	&dev_attr_update_fw.attr,
+#endif
 	NULL
 };
 
 static const struct attribute_group mxt_attr_group = {
 	.attrs = mxt_attrs,
 };
-
 static void mxt_start(struct mxt_data *data)
 {
 	switch (data->pdata->suspend_mode) {
