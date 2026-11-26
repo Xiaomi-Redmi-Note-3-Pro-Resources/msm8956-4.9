@@ -1011,6 +1011,18 @@ static int qpnp_smps_check_constraints(struct spm_vreg *vreg,
 		break;
 	}
 
+	/*
+	 * The PMIC's lower limit applies whatever the board asks for, so use it
+	 * instead of refusing a smaller minimum. Boards written for older
+	 * drivers, which did not check, have one.
+	 */
+	if (init_data->constraints.min_uV < limit_min_uV
+	    && init_data->constraints.max_uV >= limit_min_uV) {
+		dev_info(&vreg->pdev->dev, "regulator minimum %d uV is below the HW limit, using %d uV\n",
+			init_data->constraints.min_uV, limit_min_uV);
+		init_data->constraints.min_uV = limit_min_uV;
+	}
+
 	if (init_data->constraints.min_uV < limit_min_uV
 	    || init_data->constraints.max_uV >  limit_max_uV) {
 		dev_err(&vreg->pdev->dev, "regulator min/max(%d/%d) constraints do not fit within HW configured min/max(%d/%d) constraints\n",
