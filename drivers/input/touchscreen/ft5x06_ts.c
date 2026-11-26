@@ -1507,6 +1507,7 @@ static void ft5x06_ts_late_resume(struct early_suspend *handler)
 }
 #endif
 
+#ifndef CONFIG_TOUCHSCREEN_XIAOMI_NO_FW_UPDATE
 static int ft5x06_auto_cal(struct i2c_client *client)
 {
 	struct ft5x06_ts_data *data = i2c_get_clientdata(client);
@@ -1927,6 +1928,7 @@ static ssize_t ft5x06_fw_name_store(struct device *dev,
 }
 
 static DEVICE_ATTR(fw_name, 0664, ft5x06_fw_name_show, ft5x06_fw_name_store);
+#endif /* !CONFIG_TOUCHSCREEN_XIAOMI_NO_FW_UPDATE */
 
 static ssize_t ts_info_show(struct kobject *kobj,
 		struct kobj_attribute *attr, char *buf)
@@ -2503,6 +2505,7 @@ static int ft5x06_ts_probe(struct i2c_client *client,
 		}
 	}
 
+#ifndef CONFIG_TOUCHSCREEN_XIAOMI_NO_FW_UPDATE
 	err = device_create_file(&client->dev, &dev_attr_fw_name);
 	if (err) {
 		dev_err(&client->dev, "sys file creation failed\n");
@@ -2520,6 +2523,7 @@ static int ft5x06_ts_probe(struct i2c_client *client,
 		dev_err(&client->dev, "sys file creation failed\n");
 		goto free_update_fw_sys;
 	}
+#endif
 
 	data->dir = debugfs_create_dir(FT_DEBUG_DIR_NAME, NULL);
 	if (data->dir == NULL || IS_ERR(data->dir)) {
@@ -2651,12 +2655,14 @@ free_secure_touch_sysfs:
 free_debug_dir:
 	debugfs_remove_recursive(data->dir);
 free_force_update_fw_sys:
+#ifndef CONFIG_TOUCHSCREEN_XIAOMI_NO_FW_UPDATE
 	device_remove_file(&client->dev, &dev_attr_force_update_fw);
 free_update_fw_sys:
 	device_remove_file(&client->dev, &dev_attr_update_fw);
 free_fw_name_sys:
 	device_remove_file(&client->dev, &dev_attr_fw_name);
 free_pocket_sys:
+#endif
 	if (ft5x06_gesture_support_enabled() && data->pdata->gesture_support)
 		device_remove_file(&client->dev, &dev_attr_pocket);
 free_enable_sys:
@@ -2721,9 +2727,11 @@ static int ft5x06_ts_remove(struct i2c_client *client)
 	}
 
 	debugfs_remove_recursive(data->dir);
+#ifndef CONFIG_TOUCHSCREEN_XIAOMI_NO_FW_UPDATE
 	device_remove_file(&client->dev, &dev_attr_force_update_fw);
 	device_remove_file(&client->dev, &dev_attr_update_fw);
 	device_remove_file(&client->dev, &dev_attr_fw_name);
+#endif
 
 #if defined(CONFIG_FB)
 	if (fb_unregister_client(&data->fb_notif))

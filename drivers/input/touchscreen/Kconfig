@@ -1376,6 +1376,17 @@ config TOUCHSCREEN_SYNAPTICS_DSX
 source "drivers/input/touchscreen/synaptics_dsx/Kconfig"
 source "drivers/input/touchscreen/focaltech_touch/Kconfig"
 
+config TOUCHSCREEN_XIAOMI_NO_FW_UPDATE
+	bool "Never write touch controller firmware or configuration"
+	default y
+	help
+	  Compile out every path in the FocalTech ft5x06 and Atmel maXTouch
+	  drivers that writes controller firmware or configuration: automatic
+	  updates, configuration downloads and their sysfs files. A failed or
+	  mismatched write can leave the touch panel unusable.
+
+	  Say Y on Xiaomi Redmi Note 3. If unsure, say Y.
+
 config TOUCHSCREEN_FT5X06
        tristate "FocalTech touchscreens"
        depends on I2C
