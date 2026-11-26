@@ -22,6 +22,10 @@
 #include <linux/completion.h>
 #include <linux/delay.h>
 #include <linux/firmware.h>
+#include <linux/gpio.h>
+#include <linux/of_gpio.h>
+#include <linux/pinctrl/consumer.h>
+#include <linux/regulator/consumer.h>
 #include <linux/i2c.h>
 #include <linux/platform_data/atmel_mxt_ts.h>
 #include <linux/input/mt.h>
@@ -193,6 +197,11 @@ enum t100_type {
 /* Delay times */
 #define MXT_BACKUP_TIME		50	/* msec */
 #define MXT_RESET_TIME		200	/* msec */
+
+/* Board wiring used by Xiaomi's "atmel,mxt-ts-1" binding */
+#define MXT_XIAOMI_COMPATIBLE	"atmel,mxt-ts-1"
+#define MXT_XIAOMI_POWER_DELAY	150	/* msec */
+#define MXT_XIAOMI_I2C_UV	1800000
 #define MXT_RESET_TIMEOUT	3000	/* msec */
 #define MXT_CRC_TIMEOUT		1000	/* msec */
 #define MXT_FW_RESET_TIME	3000	/* msec */
@@ -322,6 +331,13 @@ struct mxt_data {
 
 	/* for config update handling */
 	struct completion crc_completion;
+
+	/* Xiaomi power sequencing, unused for other bindings */
+	bool powered;
+	int reset_gpio;
+	int ldo_gpio;
+	struct regulator *vcc_i2c;
+	struct pinctrl *pinctrl;
 };
 
 struct mxt_vb2_buffer {
@@ -2954,6 +2970,10 @@ static const struct mxt_platform_data *mxt_parse_dt(struct i2c_client *client)
 
 	pdata->suspend_mode = MXT_SUSPEND_DEEP_SLEEP;
 
+	/* the Xiaomi controller holds the line low while messages wait */
+	if (of_device_is_compatible(np, MXT_XIAOMI_COMPATIBLE))
+		pdata->irqflags = IRQF_TRIGGER_LOW;
+
 	return pdata;
 }
 #else
@@ -3116,6 +3136,85 @@ mxt_get_platform_data(struct i2c_client *client)
 	return ERR_PTR(-EINVAL);
 }
 
+static void mxt_select_pins(struct mxt_data *data, const char *name)
+{
+	struct pinctrl_state *state;
+
+	if (IS_ERR_OR_NULL(data->pinctrl))
+		return;
+
+	state = pinctrl_lookup_state(data->pinctrl, name);
+	if (IS_ERR(state) || pinctrl_select_state(data->pinctrl, state))
+		dev_warn(&data->client->dev, "no pin state %s\n", name);
+}
+
+/*
+ * Power the controller as Xiaomi's driver does: I2C rail, LDO enable, then
+ * release reset. Both GPIOs are requested before anything is driven, because
+ * a phone may carry another controller on the same lines.
+ */
+static int mxt_power_on(struct mxt_data *data)
+{
+	struct device *dev = &data->client->dev;
+	struct device_node *np = dev->of_node;
+	int error;
+
+	if (!np || !of_device_is_compatible(np, MXT_XIAOMI_COMPATIBLE))
+		return 0;
+
+	data->reset_gpio = of_get_named_gpio(np, "atmel,reset-gpio", 0);
+	if (!gpio_is_valid(data->reset_gpio))
+		return data->reset_gpio;
+	data->ldo_gpio = of_get_named_gpio(np, "atmel,power_ldo-gpio", 0);
+	if (!gpio_is_valid(data->ldo_gpio))
+		return data->ldo_gpio;
+
+	error = devm_gpio_request_one(dev, data->reset_gpio,
+				      GPIOF_OUT_INIT_LOW, "mxt_reset");
+	if (error)
+		return error;
+	error = devm_gpio_request_one(dev, data->ldo_gpio,
+				      GPIOF_OUT_INIT_LOW, "mxt_ldo");
+	if (error)
+		return error;
+
+	data->vcc_i2c = devm_regulator_get(dev, "vcc_i2c");
+	if (IS_ERR(data->vcc_i2c))
+		return PTR_ERR(data->vcc_i2c);
+	if (regulator_count_voltages(data->vcc_i2c) > 0) {
+		error = regulator_set_voltage(data->vcc_i2c,
+				MXT_XIAOMI_I2C_UV, MXT_XIAOMI_I2C_UV);
+		if (error)
+			return error;
+	}
+	error = regulator_enable(data->vcc_i2c);
+	if (error)
+		return error;
+
+	data->pinctrl = devm_pinctrl_get(dev);
+	mxt_select_pins(data, "pmx_ts_active");
+
+	gpio_set_value_cansleep(data->ldo_gpio, 1);
+	msleep(MXT_XIAOMI_POWER_DELAY);
+	gpio_set_value_cansleep(data->reset_gpio, 1);
+	msleep(MXT_RESET_TIME);
+
+	data->powered = true;
+	return 0;
+}
+
+static void mxt_power_off(struct mxt_data *data)
+{
+	if (!data->powered)
+		return;
+
+	gpio_set_value_cansleep(data->reset_gpio, 0);
+	gpio_set_value_cansleep(data->ldo_gpio, 0);
+	mxt_select_pins(data, "pmx_ts_suspend");
+	regulator_disable(data->vcc_i2c);
+	data->powered = false;
+}
+
 static int mxt_probe(struct i2c_client *client, const struct i2c_device_id *id)
 {
 	struct mxt_data *data;
@@ -3144,12 +3243,18 @@ static int mxt_probe(struct i2c_client *client, const struct i2c_device_id *id)
 	init_completion(&data->reset_completion);
 	init_completion(&data->crc_completion);
 
+	error = mxt_power_on(data);
+	if (error) {
+		dev_err(&client->dev, "Failed to power on: %d\n", error);
+		goto err_free_mem;
+	}
+
 	error = request_threaded_irq(client->irq, NULL, mxt_interrupt,
 				     pdata->irqflags | IRQF_ONESHOT,
 				     client->name, data);
 	if (error) {
 		dev_err(&client->dev, "Failed to register interrupt\n");
-		goto err_free_mem;
+		goto err_power_off;
 	}
 
 	disable_irq(client->irq);
@@ -3172,6 +3277,8 @@ err_free_object:
 	mxt_free_object_table(data);
 err_free_irq:
 	free_irq(client->irq, data);
+err_power_off:
+	mxt_power_off(data);
 err_free_mem:
 	kfree(data);
 	return error;
@@ -3185,6 +3292,7 @@ static int mxt_remove(struct i2c_client *client)
 	free_irq(data->irq, data);
 	mxt_free_input_device(data);
 	mxt_free_object_table(data);
+	mxt_power_off(data);
 	kfree(data);
 
 	return 0;
@@ -3236,6 +3344,7 @@ static SIMPLE_DEV_PM_OPS(mxt_pm_ops, mxt_suspend, mxt_resume);
 
 static const struct of_device_id mxt_of_match[] = {
 	{ .compatible = "atmel,maxtouch", },
+	{ .compatible = MXT_XIAOMI_COMPATIBLE, },
 	{},
 };
 MODULE_DEVICE_TABLE(of, mxt_of_match);
