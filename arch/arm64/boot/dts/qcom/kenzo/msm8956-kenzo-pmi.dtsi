@@ -1,5 +1,5 @@
 /*
- * Charger, fuel gauge and battery profiles for Xiaomi Redmi Note 3 (kenzo/kate).
+ * Charger, fuel gauge, battery profiles, and haptics for Xiaomi Redmi Note 3 (kenzo/kate).
  */
 
 &qpnp_smbcharger {
@@ -40,4 +40,17 @@
 	#include "batterydata-kenzo-sunwoda-4000mah.dtsi"
 	#include "batterydata-kenzo-coslight-4000mah-10k.dtsi"
 	#include "batterydata-kenzo-scud-4000mah.dtsi"
+};
+
+&spmi_bus {
+	qcom,pmi8950@3 {
+		/delete-node/ qcom,haptic@c000;
+	};
+};
+
+&pmi_haptic {
+	qcom,actuator-type = <1>;
+	qcom,vmax-mv = <2800>;
+	qcom,sc-dbc-cycles = <8>;
+	/delete-property/ qcom,sc-deb-cycles;
 };
