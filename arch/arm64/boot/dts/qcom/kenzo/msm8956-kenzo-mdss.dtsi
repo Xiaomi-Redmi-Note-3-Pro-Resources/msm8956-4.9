@@ -1,0 +1,45 @@
+/*
+ * Display, panels and backlight for Xiaomi Redmi Note 3 (kenzo/kate).
+ */
+
+#include "dsi-panel-kenzo-boe-nt35532-1080p-video.dtsi"
+#include "dsi-panel-kenzo-sharp-r63315-1080p-video.dtsi"
+#include "dsi-panel-kenzo-tianma-nt35596-1080p-video.dtsi"
+
+&dsi_truly_1080_cmd {
+	qcom,partial-update-enabled;
+	qcom,panel-roi-alignment = <2 2 4 2 900 2>;
+};
+
+/*
+ * Stock has no kernel splash logo. With it, the logo is scanned out before the
+ * display's IOMMU mapping exists.
+ */
+&mdss_fb0 {
+	/delete-property/ qcom,mdss-fb-splash-logo-enabled;
+};
+
+&mdss_dsi0 {
+	qcom,panel-mode-gpio = <&msm_gpio 108 0>;
+	/delete-property/ qcom,platform-te-gpio;
+};
+
+&mdss_dsi1 {
+	/delete-property/ qcom,platform-te-gpio;
+};
+
+/* Stock panels do not switch the controller's vdd rail. */
+&dsi_panel_pwr_supply {
+	/delete-node/ qcom,panel-supply-entry@0;
+};
+
+&lab_regulator {
+	qcom,qpnp-lab-max-precharge-time = <300>;
+};
+
+&wled {
+	qcom,dim-method = "linear";
+	qcom,en-phase-stag;
+	qcom,ibb-pwrup-dly = <8>;
+	/delete-property/ qcom,en-ext-pfet-sc-pro;
+};

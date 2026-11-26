@@ -1,0 +1,43 @@
+/*
+ * Charger, fuel gauge and battery profiles for Xiaomi Redmi Note 3 (kenzo/kate).
+ */
+
+&qpnp_smbcharger {
+	qcom,float-voltage-mv = <4400>;
+	qcom,iterm-ma = <150>;
+	qcom,fastchg-current-comp = <900>;
+	qcom,float-voltage-comp = <11>;
+	qcom,thermal-mitigation = <2000 1200 800 600 0>;
+	qcom,charge-unknown-battery;
+	qcom,board_ntc-vadc = <&pm8950_vadc>;
+	ntc_vdd-supply = <&pm8950_l16>;
+	/delete-property/ qcom,parallel-allowed-lowering-ma;
+	/delete-property/ qcom,parallel-usb-min-current-ma;
+	/delete-property/ qcom,parallel-usb-9v-min-current-ma;
+};
+
+&qpnp_fg {
+	qcom,warm-bat-decidegc = <450>;
+	qcom,cool-bat-decidegc = <100>;
+	qcom,hot-bat-decidegc = <540>;
+	qcom,cold-bat-decidegc = <0>;
+	qcom,cold-hot-jeita-hysteresis = <0 10>;
+	qcom,fg-iterm-ma = <200>;
+	qcom,fg-chg-iterm-ma = <150>;
+	qcom,fg-cutoff-voltage-mv = <3400>;
+	qcom,resume-soc = <99>;
+	qcom,resume-soc-raw = <254>;
+	qcom,fg-delta-soc = <1>;
+	qcom,vbat-estimate-diff-mv = <100>;
+	qcom,thermal-coefficients = [67 85 fc 4a e0 3d];
+};
+
+&mtp_batterydata {
+	qcom,batt-id-range-pct = <20>;
+	/delete-node/ qcom,itech-3000mah;
+	/delete-node/ qcom,itech-3000mah-4200mv;
+
+	#include "batterydata-kenzo-sunwoda-4000mah.dtsi"
+	#include "batterydata-kenzo-coslight-4000mah-10k.dtsi"
+	#include "batterydata-kenzo-scud-4000mah.dtsi"
+};

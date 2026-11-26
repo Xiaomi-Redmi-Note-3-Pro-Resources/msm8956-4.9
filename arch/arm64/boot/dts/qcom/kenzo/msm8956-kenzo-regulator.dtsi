@@ -1,0 +1,125 @@
+/*
+ * Regulator, CPU and GPU frequency/voltage limits for Xiaomi Redmi Note 3 (kenzo/kate).
+ */
+
+&pm8004_s5 {
+	regulator-max-microvolt = <1165000>;
+};
+
+&pm8950_s5 {
+	regulator-min-microvolt = <500000>;
+};
+
+&pm8950_l22 {
+	regulator-min-microvolt = <2800000>;
+	regulator-max-microvolt = <2950000>;
+	qcom,init-voltage = <2950000>;
+};
+
+/* The stock A72 rail has seven corners; the reference tree adds two faster. */
+&apc1_vreg_corner {
+	regulator-max-microvolt = <0x07>;
+	qcom,vdd-mx-corner-map =
+		<0x80 0x80 0xc0 0x100 0x180 0x180 0x180>;
+	qcom,cpr-corner-map = <1 1 2 2 3 3 3>;
+	qcom,cpr-corner-frequency-map =
+		<0x01 0x17d78400 0x02 0x34a49000 0x03 0x46f41000
+		 0x04 0x5265c000 0x05 0x60216000 0x06 0x68242800
+		 0x07 0x6b931000>;
+	qcom,cpr-voltage-floor-override =
+		<0xffffffff 0xffffffff 0xc0df0 0xc0df0 0xc8320 0xcf850
+		 0xe57e0 0xf1b30 0xf1b30>;
+};
+
+&{/soc/qcom,msm-cpufreq} {
+	qcom,cpufreq-table-4 =
+		<400000 883200 940800 998400 1056000 1113600 1190400
+		 1248000 1305600 1382400 1612800 1747200 1804800>;
+};
+
+/* Stock has one GPU frequency table for both silicon revisions. */
+&clock_gcc_gfx {
+	qcom,gfxfreq-corner-v1 =
+		<        0	0 >,
+		<133333333	1 >,
+		<200000000	2 >,
+		<266666667	3 >,
+		<300000000	4 >,
+		<366670000	5 >,
+		<432000000	6 >,
+		<480000000	7 >,
+		<550000000	8 >,
+		<600000000	9 >;
+};
+
+&gfx_vreg_corner {
+	/delete-property/ qcom,cpr-gfx-dynamic-floor-offset;
+};
+
+&msm_gpu {
+	qcom,initial-pwrlevel = <5>;
+
+	/delete-node/ qcom,gpu-pwrlevel-bins;
+
+	qcom,gpu-pwrlevels {
+		#address-cells = <1>;
+		#size-cells = <0>;
+		compatible = "qcom,gpu-pwrlevels";
+
+		qcom,gpu-pwrlevel@0 {
+			reg = <0>;
+			qcom,gpu-freq = <600000000>;
+			qcom,bus-freq = <9>;
+			qcom,bus-min = <9>;
+			qcom,bus-max = <10>;
+		};
+
+		qcom,gpu-pwrlevel@1 {
+			reg = <1>;
+			qcom,gpu-freq = <550000000>;
+			qcom,bus-freq = <9>;
+			qcom,bus-min = <9>;
+			qcom,bus-max = <10>;
+		};
+
+		qcom,gpu-pwrlevel@2 {
+			reg = <2>;
+			qcom,gpu-freq = <480000000>;
+			qcom,bus-freq = <8>;
+			qcom,bus-min = <7>;
+			qcom,bus-max = <9>;
+		};
+
+		qcom,gpu-pwrlevel@3 {
+			reg = <3>;
+			qcom,gpu-freq = <432000000>;
+			qcom,bus-freq = <7>;
+			qcom,bus-min = <5>;
+			qcom,bus-max = <9>;
+		};
+
+		qcom,gpu-pwrlevel@4 {
+			reg = <4>;
+			qcom,gpu-freq = <300000000>;
+			qcom,bus-freq = <5>;
+			qcom,bus-min = <4>;
+			qcom,bus-max = <7>;
+		};
+
+		qcom,gpu-pwrlevel@5 {
+			reg = <5>;
+			qcom,gpu-freq = <266666667>;
+			qcom,bus-freq = <4>;
+			qcom,bus-min = <4>;
+			qcom,bus-max = <5>;
+		};
+
+		qcom,gpu-pwrlevel@6 {
+			reg = <6>;
+			qcom,gpu-freq = <19200000>;
+			qcom,bus-freq = <0>;
+			qcom,bus-min = <0>;
+			qcom,bus-max = <0>;
+		};
+	};
+};

@@ -563,6 +563,9 @@ dtb-$(CONFIG_ARCH_MSM8976) += msm8976-sim.dtb \
 	apq8076-v1.1-cdp.dtb \
 	apq8076-v1.1-mtp-rome.dtb
 
+dtb-$(CONFIG_MACH_XIAOMI_KENZO) += msm8956-kenzo-mtp.dtb \
+	msm8956-v1.1-kenzo-mtp.dtb
+
 dtb-$(CONFIG_ARCH_MSM8953) += msm8953-cdp.dtb \
 	msm8953-mtp.dtb \
 	msm8953-ext-codec-mtp.dtb \

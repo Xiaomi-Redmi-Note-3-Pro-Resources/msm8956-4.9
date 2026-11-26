@@ -1,0 +1,44 @@
+/*
+ * Reserved memory layout for Xiaomi Redmi Note 3 (kenzo/kate).
+ *
+ * Xiaomi's TrustZone and modem firmware own these ranges. They differ from the
+ * reference map: no region at 0x85b00000, and the secure applications region
+ * sits at 0x8dd00000.
+ */
+
+&{/reserved-memory} {
+	/delete-node/ other_ext_region@85b00000;
+
+	other_ext_mem: other_ext_region@86300000 {
+		compatible = "removed-dma-pool";
+		no-map;
+		reg = <0x0 0x86300000 0x0 0x500000>;
+	};
+
+	tzapp_mem: tzapp_region@8dd00000 {
+		compatible = "removed-dma-pool";
+		no-map;
+		reg = <0x0 0x8dd00000 0x0 0x1900000>;
+	};
+};
+
+&reloc_mem {
+	reg = <0x0 0x8c200000 0x0 0x1700000>;
+};
+
+/* Stock pool sizes, rounded up to the 4 MiB that CMA requires. */
+&venus_mem {
+	size = <0 0x800000>;
+};
+
+&secure_mem {
+	size = <0 0x7c00000>;
+};
+
+&adsp_mem {
+	size = <0 0x400000>;
+};
+
+&qcom_seecom {
+	reg = <0x8dd00000 0x1900000>;
+};

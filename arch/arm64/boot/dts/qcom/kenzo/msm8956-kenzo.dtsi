@@ -1,0 +1,32 @@
+/*
+ * Xiaomi Redmi Note 3 (kenzo) and Redmi Note 3 Special Edition (kate).
+ *
+ * Board values on top of msm8956-mtp.dtsi, taken from the stock device trees of
+ * MIUI V10.2.1.0 (MHOMIXM / MHRMIXM), which are identical on both phones.
+ * Stock values win over the reference board values.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2 and
+ * only version 2 as published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ */
+
+#include "msm8956-kenzo-memory.dtsi"
+#include "msm8956-kenzo-regulator.dtsi"
+#include "msm8956-kenzo-pmi.dtsi"
+#include "msm8956-kenzo-mdss.dtsi"
+#include "msm8956-kenzo-touch.dtsi"
+
+&sdhc_2 {
+	qcom,vdd-is-sd-vdd;
+};
+
+&usb_otg {
+	qcom,hsusb-otg-mpm-dpsehv-int = <49>;
+	qcom,hsusb-otg-mpm-dmsehv-int = <58>;
+	qcom,usbid-switch = <&msm_gpio 17 0>;
+};

@@ -167,6 +167,13 @@ config ARCH_MSM8976
 	  This enables support for the MSM8976 chipset. If you do not
 	  wish to build a kernel that runs on this chipset, say 'N' here.
 
+config MACH_XIAOMI_KENZO
+	bool "Xiaomi Redmi Note 3 (kenzo) and Special Edition (kate)"
+	depends on ARCH_MSM8976
+	help
+	  Build the device trees for the Xiaomi Redmi Note 3 (Snapdragon) and
+	  Redmi Note 3 Special Edition (MSM8956).
+
 config ARCH_MSM8953
 	bool "Enable Support for Qualcomm Technologies Inc. MSM8953"
 	depends on ARCH_QCOM
